@@ -8,8 +8,8 @@ from ryutils import log
 from ryutils.path_util import get_backtrace_file_name
 from ryutils.verbose import Verbose
 
-from ipc.channels import Channel
-from ipc.helpers import (
+from ry_redis_bus.channels import Channel
+from ry_redis_bus.helpers import (
     DEFAULT_COOLDOWN_TIMEOUT,
     DEFAULT_MESSAGE_BACKTRACE_FRAME,
     ITERATION_SLEEP_TIME,

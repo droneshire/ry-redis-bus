@@ -10,3 +10,5 @@ pylint-protobuf
 pytest
 ruff
 setuptools
+
+types-protobuf

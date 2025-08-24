@@ -7,20 +7,29 @@ It subscribes to all redis IPC messages and logs them.
 
 import argparse
 import typing as T
+from dataclasses import dataclass
 
 from google.protobuf.timestamp_pb2 import Timestamp  # pylint: disable=no-name-in-module
 from ryutils import log
 from ryutils.verbose import Verbose
 
-from database.dynamic_table import DynamicTableDb
-from ipc.redis_client_base import RedisClientBase, RedisInfo
-from pb_types.logging_pb2 import LogIpcMessagePb  # pylint: disable=no-name-in-module
+from ry_redis_bus.redis_client_base import RedisClientBase, RedisInfo
+
+
+@dataclass
+class LogIpcMessage:
+    utime: Timestamp
+    message: bytes
+    channel: str
 
 
 class IpcLogger(RedisClientBase):
-    LOGGER_DB_TABLE = "LogIpcMessage"
-
-    def __init__(self, verbose: Verbose, args: argparse.Namespace) -> None:
+    def __init__(
+        self,
+        verbose: Verbose,
+        args: argparse.Namespace,
+        log_callback: T.Callable[[LogIpcMessage], None],
+    ) -> None:
         redis_info: RedisInfo = RedisInfo(
             host=args.redis_host,
             port=args.redis_port,
@@ -30,15 +39,16 @@ class IpcLogger(RedisClientBase):
             db_name=args.redis_db_name,
         )
         super().__init__(
-            redis_info=redis_info, verbose=verbose, default_message_callback=self.log_message
+            redis_info=redis_info,
+            verbose=verbose,
+            default_message_callback=self.log_message,
         )
+        self.log_callback = log_callback
 
-        self.db_name = args.postgres_db
-
-    def log_message(self, message: T.Any) -> None:
+    def log_message(self, message: T.Any) -> T.Optional[LogIpcMessage]:
         """Logs the message to the database"""
         if message is None:
-            return
+            return None
 
         channel = message["channel"].decode("utf-8")
 
@@ -49,9 +59,12 @@ class IpcLogger(RedisClientBase):
         timestamp = Timestamp()
         timestamp.GetCurrentTime()
 
-        log_msg_pb = LogIpcMessagePb()
-        log_msg_pb.message = data
-        log_msg_pb.channel = channel
-        log_msg_pb.utime.CopyFrom(timestamp)
+        log_msg = LogIpcMessage(
+            utime=timestamp,
+            message=data,
+            channel=channel,
+        )
 
-        DynamicTableDb.log_data_to_db(log_msg_pb, self.db_name, self.LOGGER_DB_TABLE)
+        self.log_callback(log_msg)
+
+        return log_msg

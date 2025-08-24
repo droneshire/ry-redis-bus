@@ -1,9 +1,9 @@
 from google.protobuf.message import Message
 from ryutils.verbose import Verbose
 
-from ipc.channels import Channel
-from ipc.helpers import RedisInfo, message_handler
-from ipc.redis_client_base import RedisClientBase
+from ry_redis_bus.channels import Channel
+from ry_redis_bus.helpers import RedisInfo, message_handler
+from ry_redis_bus.redis_client_base import RedisClientBase
 
 
 class RedisReceiver(RedisClientBase):

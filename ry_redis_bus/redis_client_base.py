@@ -4,10 +4,10 @@ import redis
 import redis.asyncio as aioredis
 from ryutils.verbose import Verbose
 
-from ipc.channels import Channel
-from ipc.helpers import RedisInfo, RedisMessageCallback
-from ipc.redis_client_base_async import AsyncRedisClientBase
-from ipc.redis_client_base_sync import SyncRedisClientBase
+from ry_redis_bus.channels import Channel
+from ry_redis_bus.helpers import RedisInfo, RedisMessageCallback
+from ry_redis_bus.redis_client_base_async import AsyncRedisClientBase
+from ry_redis_bus.redis_client_base_sync import SyncRedisClientBase
 
 
 # pylint: disable=too-many-public-methods

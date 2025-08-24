@@ -3,11 +3,6 @@ import typing as T
 
 from google.protobuf.message import Message
 
-from pb_types.database_pb2 import (  # pylint: disable=no-name-in-module
-    DatabaseConfigPb,
-    DatabaseNotificationPb,
-)
-
 
 class Channel:
     REQUIRED_FIELDS = ["utime"]
@@ -40,9 +35,3 @@ class Channel:
 
     def __hash__(self) -> int:
         return hash(self.name)
-
-
-# Channels
-# EXAMPLE_CHANNEL = Channel("EXAMPLE_CHANNEL", ExamplePb)
-DATABASE_CHANNEL = Channel("DATABASE_CHANNEL", DatabaseConfigPb)
-DATABASE_NOTIFY_CHANNEL = Channel("DATABASE_NOTIFY_CHANNEL", DatabaseNotificationPb)
