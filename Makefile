@@ -7,6 +7,7 @@ PIP_COMPILE = uv pip compile
 PACKAGES_PATH=$(PWD)/packages
 PY_VENV=$(PWD)/venv
 PY_VENV_REL_PATH=$(subst $(PWD)/,,$(PY_VENV))
+PY_VENV_DEV_REL_PATH=$(subst $(PWD)/,,$(PY_VENV_DEV))
 
 # Python execution
 PY_PATH=$(PWD)
