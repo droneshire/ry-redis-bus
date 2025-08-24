@@ -25,6 +25,15 @@ init:
 	fi
 	@echo "\033[0;32mRun 'source $(PY_VENV_REL_PATH)/bin/activate' to activate the virtual environment\033[0m"
 
+init_dev:
+	@if [ -d "$(PY_VENV_DEV_REL_PATH)" ]; then \
+		echo "\033[33mDev virtual environment already exists\033[0m"; \
+	else \
+		$(PYTHON) -m venv $(PY_VENV_DEV_REL_PATH); \
+	fi
+	@echo "\033[0;32mRun 'source $(PY_VENV_DEV_REL_PATH)/bin/activate' to activate the dev virtual environment\033[0m";
+
+
 install:
 	$(PIP) install --upgrade pip
 	$(PIP) install uv
