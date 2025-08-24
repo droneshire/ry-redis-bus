@@ -1,7 +1,6 @@
 import json
 import threading
 import unittest
-from unittest.mock import Mock
 
 import redis
 from google.protobuf.message import Message
@@ -21,19 +20,19 @@ from ry_redis_bus.redis_client_base import RedisClientBase
 class MockProtobufMessage:
     """Mock protobuf message for testing that has the required utime field"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.utime = Timestamp()
         self.utime.GetCurrentTime()
 
-    def SerializeToString(self):
+    def SerializeToString(self) -> bytes:  # pylint: disable=invalid-name
         # Return a simple serialized representation for testing
         # Use a format that can be easily parsed back
         return f"mock_message_{self.utime.seconds}_{self.utime.nanos}".encode()
 
-    def ParseFromString(self, data):
+    def ParseFromString(self, serialized: bytes) -> int:  # pylint: disable=invalid-name
         # Mock parsing - decode the data and extract timestamp components
         try:
-            decoded = data.decode()
+            decoded = serialized.decode()
             if decoded.startswith("mock_message_"):
                 parts = decoded.split("_")
                 if len(parts) >= 4:
@@ -43,6 +42,7 @@ class MockProtobufMessage:
             # If parsing fails, just set default values
             self.utime.seconds = 0
             self.utime.nanos = 0
+        return len(serialized)  # Return the number of bytes consumed
 
 
 class RedisClientTest(unittest.TestCase):
@@ -147,7 +147,9 @@ class RedisClientTest(unittest.TestCase):
                     # Create a mock message item that matches what deserialize_message expects
                     mock_item = {"data": item["data"]}
                     # Use the mock message class for deserialization
-                    message = deserialize_message(mock_item, MockProtobufMessage, verbose=False)
+                    message = deserialize_message(
+                        mock_item, MockProtobufMessage, verbose=False  # type: ignore[arg-type]
+                    )
                     try:
                         # Check that we got a valid protobuf message
                         self.assertIsNotNone(message)
@@ -174,7 +176,9 @@ class RedisClientTest(unittest.TestCase):
     def test_deserialize_checks(self) -> None:
         test_message = MockProtobufMessage()
 
-        check_pass = deserialize_checks(channel="test_channel", message_pb=test_message)
+        check_pass = deserialize_checks(
+            channel="test_channel", message_pb=test_message  # type: ignore[arg-type]
+        )
         self.assertTrue(check_pass)
 
         # Test with expired timestamp
@@ -182,7 +186,9 @@ class RedisClientTest(unittest.TestCase):
         incrment_time *= -1.0
         self._increment_timestamp(incrment_time, test_message.utime)
 
-        check_pass = deserialize_checks(channel="test_channel", message_pb=test_message)
+        check_pass = deserialize_checks(
+            channel="test_channel", message_pb=test_message  # type: ignore[arg-type]
+        )
         self.assertFalse(check_pass)
 
     def _increment_timestamp(self, increment_seconds: float, timestamp: Timestamp) -> None:

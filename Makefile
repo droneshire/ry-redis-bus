@@ -49,16 +49,27 @@ install_dev:
 	$(MAYBE_UV) pip install -r $(PACKAGES_PATH)/requirements-dev.txt
 
 format: isort
+	$(RUN_PY_DIRECT) ruff check --fix $(shell $(PY_FIND_COMMAND))
 	$(BLACK_CMD)
 
-check_format:
+check_format_fast:
+	$(RUN_PY_DIRECT) ruff check --diff $(shell $(PY_FIND_COMMAND))
 	$(BLACK_CMD) --check --diff
 
+check_format: check_format_fast
+	echo "Format check complete"
+
+mypy_mod:
+	$(RUN_PY_DIRECT) mypy $(shell $(PY_MODIFIED_FIND_COMMAND)) --config-file $(MYPY_CONFIG) --namespace-packages
+
 mypy:
-	$(RUN_PY) mypy $(shell $(PY_FIND_COMMAND)) --config-file $(MYPY_CONFIG) --no-namespace-packages
+	$(RUN_PY_DIRECT) mypy $(shell $(PY_FIND_COMMAND)) --config-file $(MYPY_CONFIG)
+
+pylint_mod:
+	$(RUN_PY_DIRECT) pylint $(shell $(PY_MODIFIED_FIND_COMMAND))
 
 pylint:
-	$(RUN_PY) pylint $(shell $(PY_FIND_COMMAND))
+	$(RUN_PY_DIRECT) pylint $(shell $(PY_FIND_COMMAND))
 
 autopep8:
 	autopep8 --in-place --aggressive --aggressive $(shell $(PY_FIND_COMMAND))
@@ -66,7 +77,9 @@ autopep8:
 isort:
 	isort $(shell $(PY_FIND_COMMAND))
 
-lint: check_format mypy pylint
+lint: check_format_fast mypy_mod pylint_mod
+
+lint_full: check_format mypy pylint
 
 test:
 	$(RUN_PY) unittest discover -s test -p *_test.py -v

@@ -41,9 +41,14 @@ class IpcLogger(RedisClientBase):
         super().__init__(
             redis_info=redis_info,
             verbose=verbose,
-            default_message_callback=self.log_message,
+            default_message_callback=(self.log_message_callback),
         )
         self.log_callback = log_callback
+
+    def log_message_callback(self, message: T.Any) -> None:
+        log_msg = self.log_message(message)
+        if log_msg is not None:
+            self.log_callback(log_msg)
 
     def log_message(self, message: T.Any) -> T.Optional[LogIpcMessage]:
         """Logs the message to the database"""
@@ -64,7 +69,5 @@ class IpcLogger(RedisClientBase):
             message=data,
             channel=channel,
         )
-
-        self.log_callback(log_msg)
 
         return log_msg
