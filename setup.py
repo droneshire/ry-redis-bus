@@ -14,15 +14,15 @@ with open("VERSION", encoding="utf-8") as infile:
     VERSION = infile.read().strip()
 
 setup(
-    name="redis-ipc",
+    name="ry-redis-bus",
     version=VERSION,
     description="Redis IPC framework for Python and protobuf message types",
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
     author="Ross Yeager",
     author_email="ryeager12@email.com",
-    packages=find_packages(include=["redis_ipc", "redis_ipc.*"]),
-    package_data={"redis_ipc": ["py.typed"]},
+    packages=find_packages(include=["ry_redis_bus", "ry_redis_bus.*"]),
+    package_data={"ry_redis_bus": ["py.typed"]},
     install_requires=required,
     classifiers=[
         "Development Status :: 5 - Production/Stable",
