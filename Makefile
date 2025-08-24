@@ -6,6 +6,7 @@ PIP_COMPILE = uv pip compile
 # Core paths
 PACKAGES_PATH=$(PWD)/packages
 PY_VENV=$(PWD)/venv
+PY_VENV_DEV=$(PWD)/venv-dev
 PY_VENV_REL_PATH=$(subst $(PWD)/,,$(PY_VENV))
 PY_VENV_DEV_REL_PATH=$(subst $(PWD)/,,$(PY_VENV_DEV))
 
