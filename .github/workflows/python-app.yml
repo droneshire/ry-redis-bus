@@ -1,0 +1,25 @@
+name: Python Application
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Python App Docker Test
+        id: python-app
+        uses: ./.github/actions/docker-python-action
+        with:
+          version: v2.0.0
+      - name: Get Docker results
+        run: echo "${{ steps.python-app.outputs.result }}"
