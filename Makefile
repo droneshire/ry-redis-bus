@@ -15,7 +15,8 @@ PY_PATH=$(PWD)
 RUN_PY = PYTHONPATH=$(PY_PATH) $(PYTHON) -m
 
 # Formatting and linting
-PY_FIND_COMMAND = find . -name '*.py' | grep -vE "($(PY_VENV_REL_PATH))"
+PY_FIND_COMMAND = find . -name '*.py' | grep -vE "($(PY_VENV_REL_PATH)|$(PY_VENV_DEV_REL_PATH))"
+PY_MODIFIED_FIND_COMMAND = git diff --name-only --diff-filter=AM HEAD | grep '\.py$$' | grep -vE "($(PY_VENV_REL_PATH)|$(PY_VENV_DEV_REL_PATH))"
 BLACK_CMD = $(RUN_PY) black --line-length 100 $(shell $(PY_FIND_COMMAND))
 MYPY_CONFIG=$(PY_PATH)/mypy_config.ini
 

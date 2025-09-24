@@ -47,7 +47,9 @@ class IpcLogger(RedisClientBase):
 
     def log_message_callback(self, message: T.Any) -> None:
         log_msg = self.log_message(message)
-        if log_msg is not None:
+        if log_msg is None:
+            return
+        if self.log_callback is not None and callable(self.log_callback):
             self.log_callback(log_msg)
 
     def log_message(self, message: T.Any) -> T.Optional[LogIpcMessage]:
