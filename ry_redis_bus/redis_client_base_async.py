@@ -169,7 +169,16 @@ class AsyncRedisClientBase:
         channels = list(self.channel_map.keys())
         for channel in channels:
             await self._unsubscribe(channel, delete_map=False)
-        await (await self.pubsub).close()
+        if self._pubsub is not None:
+            await (await self.pubsub).close()
+            self._pubsub = None
+
+    async def close(self) -> None:
+        """Close all connections and clean up resources"""
+        await self.stop()
+        if self._client is not None:
+            await self._client.close()
+            self._client = None
 
     async def start(self) -> None:
         self.stop_listen = False

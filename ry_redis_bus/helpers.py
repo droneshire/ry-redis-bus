@@ -19,7 +19,7 @@ FuncTyping = T.Union[
 
 RedisMessageCallback = T.Union[
     T.Callable[[T.Any], None],
-    T.Awaitable[T.Callable[[T.Any], None]],
+    T.Callable[[T.Any], T.Coroutine[T.Any, T.Any, None]],
     None,
 ]
 
@@ -63,7 +63,7 @@ class RedisInfo:
 
     def __repr__(self) -> str:
         values = [
-            f"{key}={'*' * len(value) if key == 'password' else value}"
+            f"{key}={'*' * min(8, len(value)) if key == 'password' and value else value}"
             for key, value in self.__dict__.items()
         ]
         values_string = "\n\t".join(values)
@@ -114,8 +114,13 @@ def get_redis_connection(
     retry_delay: int = 5,
 ) -> redis.Redis:
     """Gets the Redis connection with retry"""
-    if redis_client is not None and redis_client.ping():
-        return redis_client
+    if redis_client is not None:
+        try:
+            if redis_client.ping():
+                return redis_client
+        except (redis.exceptions.ConnectionError, redis.exceptions.RedisError):
+            # Connection is stale, will retry below
+            pass
 
     if redis_info == RedisInfo.null():
         raise redis.exceptions.ConnectionError("Redis info is null")

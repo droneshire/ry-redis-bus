@@ -138,8 +138,16 @@ class SyncRedisClientBase:
         channels = list(self.channel_map.keys())
         for channel in channels:
             self._unsubscribe(channel, delete_map=False)
-        self.pubsub.close()
-        self._pubsub = None
+        if self._pubsub is not None:
+            self.pubsub.close()
+            self._pubsub = None
+
+    def close(self) -> None:
+        """Close all connections and clean up resources"""
+        self.stop()
+        if self._client is not None:
+            self._client.close()
+            self._client = None
 
     def start(self) -> None:
         self.stop_listen = False

@@ -117,3 +117,11 @@ class RedisClientBase:
     def run(self) -> None:
         """Sync version of run."""
         self.sync_client.run()
+
+    async def aclose(self) -> None:
+        """Async version of close."""
+        await self.async_client.close()
+
+    def close(self) -> None:
+        """Sync version of close."""
+        self.sync_client.close()
