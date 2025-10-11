@@ -1,12 +1,12 @@
 import argparse
 import os
 
-CONFIG_REDIS_HOST = os.getenv("CONFIG_REDIS_HOST", "localhost")
-CONFIG_REDIS_PORT = int(os.getenv("CONFIG_REDIS_PORT", "6379"))
-CONFIG_REDIS_DB = int(os.getenv("CONFIG_REDIS_DB", "0"))
-CONFIG_REDIS_DB_NAME = os.getenv("CONFIG_REDIS_DB_NAME", "redis_ipc")
-CONFIG_REDIS_USER = os.getenv("CONFIG_REDIS_USER", "")
-CONFIG_REDIS_PASSWORD = os.getenv("CONFIG_REDIS_PASSWORD", "")
+CONFIG_REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+CONFIG_REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+CONFIG_REDIS_DB = int(os.getenv("REDIS_DB", "0"))
+CONFIG_REDIS_DB_NAME = os.getenv("REDIS_DB_NAME", "redis_ipc")
+CONFIG_REDIS_USER = os.getenv("REDIS_USER", "")
+CONFIG_REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
 
 
 def add_redis_args(parser: argparse.ArgumentParser) -> None:
