@@ -1,16 +1,24 @@
 import argparse
+import os
+
+CONFIG_REDIS_HOST = os.getenv("CONFIG_REDIS_HOST", "localhost")
+CONFIG_REDIS_PORT = os.getenv("CONFIG_REDIS_PORT", 6379)
+CONFIG_REDIS_DB = os.getenv("CONFIG_REDIS_DB", 0)
+CONFIG_REDIS_DB_NAME = os.getenv("CONFIG_REDIS_DB_NAME", "redis_ipc")
+CONFIG_REDIS_USER = os.getenv("CONFIG_REDIS_USER", "")
+CONFIG_REDIS_PASSWORD = os.getenv("CONFIG_REDIS_PASSWORD", "")
 
 
 def add_redis_args(parser: argparse.ArgumentParser) -> None:
     redis_parser = parser.add_argument_group("redis-options")
-    redis_parser.add_argument("--redis-host", type=str, default="localhost")
-    redis_parser.add_argument("--redis-port", type=int, default=6379)
-    redis_parser.add_argument("--redis-db", choices=list(range(16)), default=0)
+    redis_parser.add_argument("--redis-host", type=str, default=CONFIG_REDIS_HOST)
+    redis_parser.add_argument("--redis-port", type=int, default=CONFIG_REDIS_PORT)
+    redis_parser.add_argument("--redis-db", choices=list(range(16)), default=CONFIG_REDIS_DB)
     redis_parser.add_argument(
         "--redis-db-name",
         type=str,
-        default="redis_ipc",
+        default=CONFIG_REDIS_DB_NAME,
     )
 
-    redis_parser.add_argument("--redis-user", type=str, default="")
-    redis_parser.add_argument("--redis-password", type=str, default="")
+    redis_parser.add_argument("--redis-user", type=str, default=CONFIG_REDIS_USER)
+    redis_parser.add_argument("--redis-password", type=str, default=CONFIG_REDIS_PASSWORD)
