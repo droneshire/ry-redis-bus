@@ -28,9 +28,6 @@ make mypy PYTHON=python3
 # Lint with pylint
 make pylint PYTHON=python3
 
-# Start the Redis server
-redis-server --daemonize yes
-
 # Test with pytest
 make test PYTHON=python3
 

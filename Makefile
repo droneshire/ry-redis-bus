@@ -127,12 +127,12 @@ release:
 
 clean:
 	rm -rf $(PY_VENV)
+	rm -rf $(PY_VENV_DEV)
 	rm -rf .ruff_cache
 	rm -rf .mypy_cache
 	rm -rf .coverage
 	rm -rf .pytest_cache
 	rm -rf dist
-	rm -rf .vscode
 
 
 .PHONY: init install install_dev format check_format mypy pylint autopep8 isort lint test upgrade release clean
