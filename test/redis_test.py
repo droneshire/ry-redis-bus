@@ -1,6 +1,6 @@
 import json
 import threading
-import unittest
+from test.redis_test_base import RedisOnlyTestBase
 
 import redis
 from google.protobuf.message import Message
@@ -45,17 +45,20 @@ class MockProtobufMessage:
         return len(serialized)  # Return the number of bytes consumed
 
 
-class RedisClientTest(unittest.TestCase):
+class RedisClientTest(RedisOnlyTestBase):
     DEFAULT_CHANNEL = Channel("test_channel", Message)
-    PORT = 6379
     DB = 0
-    HOST = "localhost"
 
     def setUp(self) -> None:
+        # Get Redis connection parameters from the container
+        conn_params = self.get_redis_connection_params()
+        host = conn_params["host"]
+        port = conn_params["port"]
+
         self.redis_client = RedisClientBase(
             RedisInfo(
-                host=self.HOST,
-                port=self.PORT,
+                host=host,
+                port=port,
                 db=self.DB,
                 user="",
                 password="",
@@ -64,7 +67,7 @@ class RedisClientTest(unittest.TestCase):
             verbose=Verbose(verbose_types=["ipc"]),
         )
         self.redis_client.subscribe(self.DEFAULT_CHANNEL, lambda _: None)
-        self.redis_simple = redis.Redis(host=self.HOST, port=self.PORT, db=self.DB)
+        self.redis_simple = redis.Redis(host=host, port=port, db=self.DB)
         self.channel = self.DEFAULT_CHANNEL
         self.message = "test_message"
 
