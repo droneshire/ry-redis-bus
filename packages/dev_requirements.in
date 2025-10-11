@@ -12,3 +12,6 @@ ruff
 setuptools
 
 types-protobuf
+
+# Testing
+testcontainers[redis]
