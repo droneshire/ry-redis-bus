@@ -105,6 +105,11 @@ release:
 		echo "\033[0;31mERROR: You must be on the main branch to create a release.\033[0m"; \
 		exit 1; \
 	fi; \
+	if [ -n "$$(git status --porcelain | grep -v "VERSION")" ]; then \
+		echo "\033[0;31mERROR: You have untracked or modified files. Please commit or stash them first.\033[0m"; \
+		git status; \
+		exit 1; \
+	fi; \
 	if [ ! -f VERSION ]; then \
 		echo "1.0.0" > VERSION; \
 		echo "\033[0;32mVERSION file not found. Created VERSION file with version 1.0.0\033[0m"; \
