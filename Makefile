@@ -137,7 +137,7 @@ clean:
 	rm -rf .mypy_cache
 	rm -rf .coverage
 	rm -rf .pytest_cache
-	rm -rf dist
+	rm -rf packages/*.txt
 
 
 .PHONY: init install install_dev format check_format mypy pylint autopep8 isort lint test upgrade release clean
