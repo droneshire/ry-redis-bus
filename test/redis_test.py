@@ -1,5 +1,8 @@
+import asyncio
+import builtins
 import json
 import threading
+import typing as T
 from test.redis_test_base import RedisOnlyTestBase
 
 import redis
@@ -13,11 +16,21 @@ from ry_redis_bus.helpers import (
     RedisInfo,
     deserialize_checks,
     deserialize_message,
+    message_handler,
 )
 from ry_redis_bus.redis_client_base import RedisClientBase
 
 
-class MockProtobufMessage:
+class MockProtobufMessageMeta(type):
+    """Metaclass to make MockProtobufMessage pass issubclass checks for Message"""
+
+    def __subclasscheck__(cls, subclass: T.Any) -> bool:
+        if subclass is MockProtobufMessage:
+            return True
+        return super().__subclasscheck__(subclass)  # type: ignore[misc]
+
+
+class MockProtobufMessage(metaclass=MockProtobufMessageMeta):
     """Mock protobuf message for testing that has the required utime field"""
 
     def __init__(self) -> None:
@@ -43,6 +56,22 @@ class MockProtobufMessage:
             self.utime.seconds = 0
             self.utime.nanos = 0
         return len(serialized)  # Return the number of bytes consumed
+
+
+# Monkey-patch issubclass to make MockProtobufMessage pass the check
+_original_issubclass = issubclass
+
+
+def _patched_issubclass(cls: T.Any, classinfo: T.Any) -> bool:
+    """Patched issubclass that treats MockProtobufMessage as a Message subclass"""
+    if cls is MockProtobufMessage and classinfo is Message:
+        return True
+    return _original_issubclass(cls, classinfo)
+
+
+# Apply the patch
+
+builtins.issubclass = _patched_issubclass  # type: ignore[assignment]
 
 
 class RedisClientTest(RedisOnlyTestBase):
@@ -202,3 +231,161 @@ class RedisClientTest(RedisOnlyTestBase):
         # Convert back to seconds and nanoseconds
         timestamp.seconds = int(new_seconds)
         timestamp.nanos = int((new_seconds - timestamp.seconds) * 1_000_000_000)
+
+    def test_message_handler_sync(self) -> None:
+        """Test that the message_handler decorator actually calls the sync function"""
+        call_count = {"count": 0}
+        received_message: T.Dict[str, T.Optional[MockProtobufMessage]] = {"message": None}
+
+        class TestHandler:
+            @message_handler
+            def handle_message(
+                self, message: MockProtobufMessage
+            ) -> None:  # type: ignore[type-arg]
+                call_count["count"] += 1
+                received_message["message"] = message
+
+        handler = TestHandler()
+        test_message = MockProtobufMessage()
+        message_data = test_message.SerializeToString()
+
+        # Create a message dict as it would come from Redis
+        redis_message = {
+            "data": message_data,
+            "channel": b"test_channel",
+        }
+
+        # Call the handler with the Redis message format
+        handler.handle_message(redis_message)
+
+        # Verify the function was actually called
+        self.assertEqual(call_count["count"], 1, "Handler function should be called once")
+        self.assertIsNotNone(
+            received_message["message"], "Message should be deserialized and passed"
+        )
+        self.assertIsInstance(
+            received_message["message"],
+            MockProtobufMessage,
+            "Message should be MockProtobufMessage",
+        )
+
+    def test_message_handler_async(self) -> None:
+        """Test that the message_handler decorator actually calls the async function"""
+        call_count = {"count": 0}
+        received_message: T.Dict[str, T.Optional[MockProtobufMessage]] = {"message": None}
+
+        class TestHandler:
+            @message_handler
+            async def handle_message(
+                self, message: MockProtobufMessage
+            ) -> None:  # type: ignore[type-arg]
+                call_count["count"] += 1
+                received_message["message"] = message
+
+        async def run_test() -> None:
+            handler = TestHandler()
+            test_message = MockProtobufMessage()
+            message_data = test_message.SerializeToString()
+
+            # Create a message dict as it would come from Redis
+            redis_message = {
+                "data": message_data,
+                "channel": b"test_channel",
+            }
+
+            # Call the handler with the Redis message format
+            await handler.handle_message(redis_message)
+
+            # Verify the function was actually called
+            self.assertEqual(call_count["count"], 1, "Handler function should be called once")
+            self.assertIsNotNone(
+                received_message["message"], "Message should be deserialized and passed"
+            )
+            self.assertIsInstance(
+                received_message["message"],
+                MockProtobufMessage,
+                "Message should be MockProtobufMessage",
+            )
+
+        # Run the async test
+        asyncio.run(run_test())
+
+    def test_message_handler_standalone_sync(self) -> None:
+        """Test that the message_handler decorator works with standalone sync functions.
+
+        This tests the bug fix where standalone functions receive the Redis message
+        dict as 'self', and find_message_in_args needs to check self first.
+        """
+        call_count = {"count": 0}
+        received_message: T.Dict[str, T.Optional[MockProtobufMessage]] = {"message": None}
+
+        @message_handler
+        def handle_message(message: MockProtobufMessage) -> None:  # type: ignore[type-arg]
+            """Standalone function handler - message dict is passed as self"""
+            call_count["count"] += 1
+            received_message["message"] = message
+
+        test_message = MockProtobufMessage()
+        message_data = test_message.SerializeToString()
+
+        # Create a message dict as it would come from Redis
+        redis_message = {
+            "data": message_data,
+            "channel": b"test_channel",
+        }
+
+        # For standalone functions, the message dict is passed as 'self' to the wrapper
+        handle_message(redis_message)
+
+        # Verify the function was actually called
+        self.assertEqual(call_count["count"], 1, "Handler function should be called once")
+        self.assertIsNotNone(
+            received_message["message"], "Message should be deserialized and passed"
+        )
+        self.assertIsInstance(
+            received_message["message"],
+            MockProtobufMessage,
+            "Message should be MockProtobufMessage",
+        )
+
+    def test_message_handler_standalone_async(self) -> None:
+        """Test that the message_handler decorator works with standalone async functions.
+
+        This tests the bug fix where standalone functions receive the Redis message
+        dict as 'self', and find_message_in_args needs to check self first.
+        """
+        call_count = {"count": 0}
+        received_message: T.Dict[str, T.Optional[MockProtobufMessage]] = {"message": None}
+
+        @message_handler
+        async def handle_message(message: MockProtobufMessage) -> None:  # type: ignore[type-arg]
+            """Standalone async function handler - message dict is passed as self"""
+            call_count["count"] += 1
+            received_message["message"] = message
+
+        async def run_test() -> None:
+            test_message = MockProtobufMessage()
+            message_data = test_message.SerializeToString()
+
+            # Create a message dict as it would come from Redis
+            redis_message = {
+                "data": message_data,
+                "channel": b"test_channel",
+            }
+
+            # For standalone functions, the message dict is passed as 'self' to the wrapper
+            await handle_message(redis_message)
+
+            # Verify the function was actually called
+            self.assertEqual(call_count["count"], 1, "Handler function should be called once")
+            self.assertIsNotNone(
+                received_message["message"], "Message should be deserialized and passed"
+            )
+            self.assertIsInstance(
+                received_message["message"],
+                MockProtobufMessage,
+                "Message should be MockProtobufMessage",
+            )
+
+        # Run the async test
+        asyncio.run(run_test())

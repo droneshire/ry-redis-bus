@@ -189,12 +189,19 @@ def infer_func_pb_type(func: FuncTyping) -> T.Type[Message]:
     return message_type
 
 
-def find_message_in_args(args: T.Tuple[T.Any, ...], kwargs: T.Dict[str, T.Any]) -> T.Any:
+def find_message_in_args(
+    self: T.Any, args: T.Tuple[T.Any, ...], kwargs: T.Dict[str, T.Any]
+) -> T.Any:
     """
-    Finds the message in the arguments and keyword arguments.
-    It assumes the message is the first argument or the first keyword argument.
+    Finds the message in self, arguments and keyword arguments.
+    It assumes the message is self (for standalone functions), the first argument,
+    or the first keyword argument.
     It pops the message from the arguments and keyword arguments.
     """
+    # Check self first (for standalone functions where item is passed as self)
+    if isinstance(self, dict) and "data" in self:
+        return self, args, kwargs
+
     for i, arg in enumerate(args):
         if isinstance(arg, dict) and "data" in arg:
             args = args[:i] + args[i + 1 :]
@@ -228,6 +235,11 @@ def _message_handler(func: FuncTyping, warn_latency: bool = True, verbose: bool 
     """Internal implementation of message handler decorator"""
     message_type = infer_func_pb_type(func)
 
+    # Check if the function is a method (has 'self' as first parameter) or standalone
+    signature = inspect.signature(func)  # type: ignore
+    parameters = list(signature.parameters.values())
+    is_method = parameters and parameters[0].name == "self"
+
     if asyncio.iscoroutinefunction(func):
 
         @functools.wraps(func)
@@ -239,7 +251,7 @@ def _message_handler(func: FuncTyping, warn_latency: bool = True, verbose: bool 
             # Use verbose parameter for logging
             verbose_ipc = verbose
 
-            message, args, kwargs = find_message_in_args(args, kwargs)
+            message, args, kwargs = find_message_in_args(self, args, kwargs)
 
             # Deserialize the message using the inferred type
             deserialized_message_pb = deserialize_message(
@@ -260,7 +272,11 @@ def _message_handler(func: FuncTyping, warn_latency: bool = True, verbose: bool 
                     f"{class_name} Received {message_type.__name__} "
                     f"message:\n{deserialized_message_pb}"
                 )
-            await func(self, deserialized_message_pb, *args, **kwargs)
+            # For methods, pass self; for standalone functions, don't pass self
+            if is_method:
+                await func(self, deserialized_message_pb, *args, **kwargs)
+            else:
+                await func(deserialized_message_pb, *args, **kwargs)
 
         return async_wrapper
 
@@ -275,7 +291,7 @@ def _message_handler(func: FuncTyping, warn_latency: bool = True, verbose: bool 
         # Use verbose parameter for logging
         verbose_ipc = verbose
 
-        message, args, kwargs = find_message_in_args(args, kwargs)
+        message, args, kwargs = find_message_in_args(self, args, kwargs)
 
         # Deserialize the message using the inferred type
         deserialized_message_pb = deserialize_message(message, message_type, verbose=verbose_ipc)
@@ -295,8 +311,11 @@ def _message_handler(func: FuncTyping, warn_latency: bool = True, verbose: bool 
                 f"message:\n{deserialized_message_pb}"
             )
 
-        # If the original function is synchronous, call it normally
-        return sfunc(self, deserialized_message_pb, *args, **kwargs)
+        # For methods, pass self; for standalone functions, don't pass self
+        if is_method:
+            return sfunc(self, deserialized_message_pb, *args, **kwargs)
+
+        return sfunc(deserialized_message_pb, *args, **kwargs)
 
     return sync_wrapper
 
