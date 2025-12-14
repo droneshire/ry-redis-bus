@@ -224,7 +224,7 @@ def deserialize_checks(channel: str, message_pb: Message, warn_latency: bool = T
     return True
 
 
-def _message_handler(func: FuncTyping, warn_latency: bool = True) -> T.Any:
+def _message_handler(func: FuncTyping, warn_latency: bool = True, verbose: bool = False) -> T.Any:
     """Internal implementation of message handler decorator"""
     message_type = infer_func_pb_type(func)
 
@@ -236,13 +236,14 @@ def _message_handler(func: FuncTyping, warn_latency: bool = True) -> T.Any:
             The wrapper function that deserializes the message, handles logging,
             and calls the original function.
             """
-            assert hasattr(self, "verbose"), "Calling module must have a `verbose` attribute"
+            # Use verbose parameter for logging
+            verbose_ipc = verbose
 
             message, args, kwargs = find_message_in_args(args, kwargs)
 
             # Deserialize the message using the inferred type
             deserialized_message_pb = deserialize_message(
-                message, message_type, verbose=self.verbose.ipc
+                message, message_type, verbose=verbose_ipc
             )
 
             if deserialized_message_pb is None:
@@ -253,9 +254,10 @@ def _message_handler(func: FuncTyping, warn_latency: bool = True) -> T.Any:
                 channel=channel, message_pb=deserialized_message_pb, warn_latency=warn_latency
             )
 
-            if self.verbose.ipc:
+            if verbose_ipc:
+                class_name = self.__class__.__name__ if hasattr(self, "__class__") else "Handler"
                 log.print_normal(
-                    f"{self.__class__} Received {message_type.__name__} "
+                    f"{class_name} Received {message_type.__name__} "
                     f"message:\n{deserialized_message_pb}"
                 )
             await func(self, deserialized_message_pb, *args, **kwargs)
@@ -270,14 +272,13 @@ def _message_handler(func: FuncTyping, warn_latency: bool = True) -> T.Any:
         The wrapper function that deserializes the message, handles logging,
         and calls the original function.
         """
-        assert hasattr(self, "verbose"), "Calling module must have a `verbose` attribute"
+        # Use verbose parameter for logging
+        verbose_ipc = verbose
 
         message, args, kwargs = find_message_in_args(args, kwargs)
 
         # Deserialize the message using the inferred type
-        deserialized_message_pb = deserialize_message(
-            message, message_type, verbose=self.verbose.ipc
-        )
+        deserialized_message_pb = deserialize_message(message, message_type, verbose=verbose_ipc)
 
         if deserialized_message_pb is None:
             return None  # Early return if deserialization fails
@@ -287,9 +288,10 @@ def _message_handler(func: FuncTyping, warn_latency: bool = True) -> T.Any:
             channel=channel, message_pb=deserialized_message_pb, warn_latency=warn_latency
         )
 
-        if self.verbose.ipc:
+        if verbose_ipc:
+            class_name = self.__class__.__name__ if hasattr(self, "__class__") else "Handler"
             log.print_normal(
-                f"{self.__class__} Received {message_type.__name__} "
+                f"{class_name} Received {message_type.__name__} "
                 f"message:\n{deserialized_message_pb}"
             )
 
@@ -299,11 +301,20 @@ def _message_handler(func: FuncTyping, warn_latency: bool = True) -> T.Any:
     return sync_wrapper
 
 
-def message_handler(func: T.Optional[FuncTyping] = None, *, warn_latency: bool = True) -> T.Any:
+def message_handler(
+    func: T.Optional[FuncTyping] = None,
+    *,
+    warn_latency: bool = True,
+    verbose: bool = False,
+) -> T.Any:
     """
     A decorator to handle deserialization of a message and logging.
-    Can be used as @message_handler or @message_handler(warn_latency=False)
+    Can be used as:
+        @message_handler
+        @message_handler(warn_latency=False)
+        @message_handler(verbose=True)
+        @message_handler(warn_latency=False, verbose=True)
     """
     if func is None:
-        return lambda f: _message_handler(f, warn_latency=warn_latency)
-    return _message_handler(func, warn_latency=warn_latency)
+        return lambda f: _message_handler(f, warn_latency=warn_latency, verbose=verbose)
+    return _message_handler(func, warn_latency=warn_latency, verbose=verbose)
